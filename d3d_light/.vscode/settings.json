@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "application.h": "c",
+        "d3d_types.h": "c",
+        "stdafx.h": "c"
+    }
+}
