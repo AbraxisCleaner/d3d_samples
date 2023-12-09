@@ -267,7 +267,8 @@ bool compile_gpu_shader(Gpu_Shader &it, ID3D11Device *device, char *path, int ty
                    &source_blob,
                    &error_blob)))
     {
-        LOGF("%s\n", (char *)error_blob->GetBufferPointer());
+        char *error_message = (char *)error_blob->GetBufferPointer();
+        printf(error_message);
         error_blob->Release();
         free(buffer);
         return false;

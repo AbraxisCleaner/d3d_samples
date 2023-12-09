@@ -16,11 +16,6 @@ struct Transform {
     HMM_Vec3 rotation;
     HMM_Vec3 scaling;
 
-    Transform() {
-        position = HMM_V3(0, 0, 0);
-        rotation = HMM_V3(0, 0, 0);
-        scaling = HMM_V3(1, 1, 1);
-    }
     HMM_Mat4 as_matrix() {
         auto tm = HMM_Translate(position);
         auto sm = HMM_Scale(scaling);
@@ -29,6 +24,26 @@ struct Transform {
                                       HMM_Rotate_LH(rotation[2], HMM_V3(0, 0, 1))));
         return HMM_MulM4(tm, HMM_MulM4(rm, sm));
     }
+
+    static Transform zero() {
+        Transform tf;
+        tf.position = HMM_V3(0, 0, 0);
+        tf.rotation = HMM_V3(0, 0, 0);
+        tf.scaling = HMM_V3(1, 1, 1);
+        return tf;
+    }
+};
+
+struct VS_CB0 {
+    HMM_Mat4 world_matrix;
+    HMM_Mat4 view_matrix;
+    HMM_Mat4 proj_matrix;
+};
+struct PS_CB0 {
+    HMM_Vec3 view_pos;
+    HMM_Vec3 light_pos;
+    HMM_Mat4 inverse_transpose_world_matrix;
+    int      use_lighting;
 };
 
 int main() {
@@ -38,40 +53,40 @@ int main() {
     Gpu_Buffer vbo, ibo;
     Vertex cube_vertices[] = {
         // +z face slice
-        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, {} },
-        { { -0.5f,  0.5f,  0.5f }, { 0, 0 }, {} },
-        { {  0.5f,  0.5f,  0.5f }, { 1, 0 }, {} },
-        { {  0.5f, -0.5f,  0.5f }, { 1, 1 }, {} },
+        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, { 0, 0, 1 } },
+        { { -0.5f,  0.5f,  0.5f }, { 0, 0 }, { 0, 0, 1 } },
+        { {  0.5f,  0.5f,  0.5f }, { 1, 0 }, { 0, 0, 1 } },
+        { {  0.5f, -0.5f,  0.5f }, { 1, 1 }, { 0, 0, 1 } },
 
         // -z face slice
-        { { -0.5f, -0.5f, -0.5f }, { 0, 1 }, {} },
-        { { -0.5f,  0.5f, -0.5f }, { 0, 0 }, {} },
-        { {  0.5f,  0.5f, -0.5f }, { 1, 0 }, {} },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 1 }, {} },
+        { { -0.5f, -0.5f, -0.5f }, { 0, 1 }, { 0, 0, -1 } },
+        { { -0.5f,  0.5f, -0.5f }, { 0, 0 }, { 0, 0, -1 } },
+        { {  0.5f,  0.5f, -0.5f }, { 1, 0 }, { 0, 0, -1 } },
+        { {  0.5f, -0.5f, -0.5f }, { 1, 1 }, { 0, 0, -1 } },
 
         // -x face slice
-        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, {} },
-        { { -0.5f, -0.5f, -0.5f }, { 0, 0 }, {} },
-        { { -0.5f,  0.5f, -0.5f }, { 1, 0 }, {} },
-        { { -0.5f,  0.5f,  0.5f }, { 1, 1 }, {} },
+        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, { -1, 0, 0 } },
+        { { -0.5f, -0.5f, -0.5f }, { 0, 0 }, { -1, 0, 0 } },
+        { { -0.5f,  0.5f, -0.5f }, { 1, 0 }, { -1, 0, 0 } },
+        { { -0.5f,  0.5f,  0.5f }, { 1, 1 }, { -1, 0, 0 } },
 
         // +x face slice
-        { {  0.5f, -0.5f,  0.5f }, { 0, 1 }, {} },
-        { {  0.5f,  0.5f,  0.5f }, { 0, 0 }, {} },
-        { {  0.5f,  0.5f, -0.5f }, { 1, 0 }, {} },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 1 }, {} },
+        { {  0.5f, -0.5f,  0.5f }, { 0, 1 }, { 1, 0, 0 } },
+        { {  0.5f,  0.5f,  0.5f }, { 0, 0 }, { 1, 0, 0 } },
+        { {  0.5f,  0.5f, -0.5f }, { 1, 0 }, { 1, 0, 0 } },
+        { {  0.5f, -0.5f, -0.5f }, { 1, 1 }, { 1, 0, 0 } },
 
         // -y face slice
-        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, {} },
-        { { -0.5f, -0.5f, -0.5f }, { 0, 0 }, {} },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 0 }, {} },
-        { {  0.5f, -0.5f,  0.5f }, { 1, 1 }, {} },
+        { { -0.5f, -0.5f,  0.5f }, { 0, 1 }, { 0, 1, 0 } },
+        { { -0.5f, -0.5f, -0.5f }, { 0, 0 }, { 0, 1, 0 } },
+        { {  0.5f, -0.5f, -0.5f }, { 1, 0 }, { 0, 1, 0 } },
+        { {  0.5f, -0.5f,  0.5f }, { 1, 1 }, { 0, 1, 0 } },
 
         //  y face slice
-        { { -0.5f, 0.5f,  0.5f }, { 0, 1 }, {} },
-        { { -0.5f, 0.5f, -0.5f }, { 0, 0 }, {}},
-        { {  0.5f, 0.5f, -0.5f }, { 1, 0 }, {} },
-        { {  0.5f, 0.5f,  0.5f }, { 1, 1 }, {} },
+        { { -0.5f, 0.5f,  0.5f }, { 0, 1 }, { 0, -1, 0 } },
+        { { -0.5f, 0.5f, -0.5f }, { 0, 0 }, { 0, -1, 0 } },
+        { {  0.5f, 0.5f, -0.5f }, { 1, 0 }, { 0, -1, 0 } },
+        { {  0.5f, 0.5f,  0.5f }, { 1, 1 }, { 0, -1, 0 } },
     };
 
     unsigned int cube_indices[] = {
@@ -96,7 +111,14 @@ int main() {
     ASSERT(compile_gpu_shader(vs, app.d3d_device, "src\\shaders\\static.hlsl", D3D11_SHVER_VERTEX_SHADER));
     ASSERT(compile_gpu_shader(ps, app.d3d_device, "src\\shaders\\lit.hlsl", D3D11_SHVER_PIXEL_SHADER));
 
-    Transform cube_tf;
+    // @TODO: We're currently hardcoding light information on the pixel shader.
+    //        We shouldn't be doing that.
+    
+    Transform cube_tf = Transform::zero();
+
+    Transform light_tf = Transform::zero();
+    light_tf.position = HMM_V3(-2, -2, 2);
+    
     Camera camera;
     
     /// MAIN LOOP
@@ -130,7 +152,7 @@ int main() {
             d3d_viewport.Height = (float)app.hwnd_size[1];
             
             app.d3d_context->RSSetViewports(1, &d3d_viewport);
-            app.d3d_context->RSSetState(app.pipeline.wf_rasterizer);
+            app.d3d_context->RSSetState(app.pipeline.cw_rasterizer);
             app.d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
             
             // -- Programmable state.
@@ -140,23 +162,40 @@ int main() {
             app.d3d_context->ClearDepthStencilView(app.pipeline.depthbuffer_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1, 0);
             app.d3d_context->OMSetRenderTargets(1, &app.pipeline.backbuffer_view, app.pipeline.depthbuffer_view);
 
+            auto *vs_cb0 = (VS_CB0 *)(vs.cbuffers.data[0].data);
+            auto *ps_cb0 = (PS_CB0 *)(ps.cbuffers.data[0].data);
+            
             // vs
-            HMM_Mat4 *vs_cb0 = (HMM_Mat4 *)(vs.cbuffers.data[0].data);
-            vs_cb0[0] = cube_tf.as_matrix();
-            vs_cb0[1] = camera.get_matrix();
-            vs_cb0[2] = HMM_Perspective_LH_ZO(camera.fov,
-                                              d3d_viewport.Width / d3d_viewport.Height,
-                                              camera.view_plane_distance[0],
-                                              camera.view_plane_distance[1]);
+            vs_cb0->world_matrix = cube_tf.as_matrix();
+            vs_cb0->view_matrix = camera.get_matrix();
+            vs_cb0->proj_matrix = HMM_Perspective_LH_ZO(camera.fov,
+                                                        d3d_viewport.Width / d3d_viewport.Height,
+                                                        camera.view_plane_distance[0],
+                                                        camera.view_plane_distance[1]);
             
             bind_gpu_shader(vs, app.d3d_context);
             
             // ps
+            ps_cb0->view_pos = camera.position;
+            ps_cb0->light_pos = light_tf.position;
+            ps_cb0->inverse_transpose_world_matrix = HMM_InvGeneralM4(HMM_TransposeM4(vs_cb0->world_matrix));
+            ps_cb0->use_lighting = true;
             bind_gpu_shader(ps, app.d3d_context);
             
             // -- Drawing
             bind_gpu_buffer(vbo, app.d3d_context);
             bind_gpu_buffer(ibo, app.d3d_context);
+            app.d3d_context->DrawIndexed(ibo.element_count, 0, 0);
+
+            // @TODO (Really just a @hack):
+            // Add a little cube where the light is supposed to be.
+            app.d3d_context->RSSetState(app.pipeline.wf_rasterizer);
+
+            vs_cb0->world_matrix = HMM_MulM4(HMM_Translate(light_tf.position), HMM_Scale(HMM_V3(0.5f, 0.5f, 0.5f)));
+            ps_cb0->use_lighting = false;
+            bind_gpu_shader(ps, app.d3d_context);
+            bind_gpu_shader(vs, app.d3d_context);
+
             app.d3d_context->DrawIndexed(ibo.element_count, 0, 0);
             
             // -- Finish

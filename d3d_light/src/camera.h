@@ -14,7 +14,7 @@ struct Camera {
     Camera() {
         fov = 80.0f;
         position = HMM_V3(0, 0, 0);
-        orbit = HMM_V3(HMM_AngleDeg(45.0f), HMM_AngleDeg(45.0f), 3);
+        orbit = HMM_V3(2, HMM_AngleDeg(-25.0f), 3);
         orbit_target = HMM_V3(0, 0, 0);
         orbit_speed = 5;
         view_plane_distance = HMM_V2(0.1f, 100.0f);
