@@ -172,7 +172,7 @@ int main() {
 
     int renderer_flags = 0; // 1 << 0: wireframe;
                             // 1 << 1: use_lighting;
-    
+ 
     /// MAIN LOOP
     float timestep = 0;
     int64_t clock1 = get_clock();
@@ -188,16 +188,10 @@ int main() {
                 win32.quit = true;
             
             if (get_key_down('T')) {
-                if (renderer_flags & 1)
-                    renderer_flags &= ~1;
-                else
-                    renderer_flags |= 1;
+                TOGGLE_BIT(renderer_flags, 1);
             }
             if (get_key_down('L')) {
-                if (renderer_flags & 2)
-                    renderer_flags &= ~2;
-                else
-                    renderer_flags |= 2;
+                TOGGLE_BIT(renderer_flags, 2);
             }
             
             camera.tick(timestep);

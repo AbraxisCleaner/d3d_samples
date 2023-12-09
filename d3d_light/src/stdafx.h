@@ -9,6 +9,9 @@
 
 #define ZeroThat(x) memset(x, 0, sizeof(*x))
 
+#define SET_BIT(x, bit) x |= bit
+#define TOGGLE_BIT(x, bit) if (x & bit) x &= ~bit; else x |= bit;
+
 typedef unsigned int uint;
 typedef unsigned char uchar;
 
