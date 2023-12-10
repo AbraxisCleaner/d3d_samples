@@ -19,23 +19,4 @@ union Face {
     uint elements[3];
 };
 
-struct Mesh_Material {
-    float diffuse[4];
-};
-
-struct Mesh_Object {
-    char name[1024];
-    Transform tf;
-    uint parent_index;
-
-    Vertex *vertices;
-    Face *faces;
-    uint num_vertices;
-    uint num_faces;
-
-    Mesh_Material material;
-};
-
-
-
 #endif 

@@ -279,7 +279,8 @@ void release_d3d() {
 
 // ================== D3D TYPES ==================
 
-struct Gpu_Buffer {
+struct Gpu_Buffer
+{
     ID3D11Buffer *handle;
     unsigned int element_count;
     unsigned int element_stride;
@@ -287,7 +288,8 @@ struct Gpu_Buffer {
     int type;
 };
 
-bool create_gpu_buffer(Gpu_Buffer &it, void *data, uint element_count, uint element_stride, int type) {
+bool create_gpu_buffer(Gpu_Buffer *it, void *data, uint element_count, uint element_stride, int type)
+{
     D3D11_BUFFER_DESC buffer_desc = {};
     D3D11_SUBRESOURCE_DATA buffer_data = {};
     auto data_ptr = &buffer_data;
@@ -299,52 +301,64 @@ bool create_gpu_buffer(Gpu_Buffer &it, void *data, uint element_count, uint elem
     if (!data)
         data_ptr = NULL;
 
-    if (FAILED(d3d.device->CreateBuffer(&buffer_desc, data_ptr, &it.handle))) {
+    if (FAILED(d3d.device->CreateBuffer(&buffer_desc, data_ptr, &it->handle))) {
         LOGF("Failed: %p, %dx%d, %d\n", data, element_count, element_stride, type);
         return false;
     }
 
-    it.element_count = element_count;
-    it.element_stride = element_stride;
-    it.element_offset = 0;
-    it.type = type;
+    it->element_count  = element_count;
+    it->element_stride = element_stride;
+    it->element_offset = 0;
+    it->type           = type;
     
     return true;
 }
 
-void release_gpu_buffer(Gpu_Buffer &it) {
-    it.handle->Release();
-    ZeroThat(&it);
+void release_gpu_buffer(Gpu_Buffer *it)
+{
+    it->handle->Release();
+    ZeroThat(it);
 }
 
-bool update_gpu_buffer(Gpu_Buffer &it, void *data, uint size) {
-    if (size > (it.element_count * it.element_stride))
-        size = (it.element_count * it.element_stride);
+void release_gpu_buffers(Gpu_Buffer *them, int count)
+{
+    for (auto i = 0; i != count; ++i)
+        release_gpu_buffer(&them[i]);
+}
+
+bool update_gpu_buffer(Gpu_Buffer *it, void *data, uint size)
+{
+    if (size > (it->element_count * it->element_stride))
+        size = (it->element_count * it->element_stride);
 
     D3D11_MAPPED_SUBRESOURCE subresource;
-    if (!FAILED(d3d.context->Map(it.handle, 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource))) {
+    if (!FAILED(d3d.context->Map(it->handle, 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource)))
+    {
         memcpy(subresource.pData, data, size);
-        d3d.context->Unmap(it.handle, 0);
+        d3d.context->Unmap(it->handle, 0);
         return true;
     }
     
     return false;
 }
 
-void bind_gpu_buffer(Gpu_Buffer &it) {
-    if (it.type == D3D11_BIND_VERTEX_BUFFER)
-        d3d.context->IASetVertexBuffers(0, 1, &it.handle, &it.element_stride, &it.element_offset);
+void bind_gpu_buffer(Gpu_Buffer *it)
+{
+    if (it->type == D3D11_BIND_VERTEX_BUFFER)
+        d3d.context->IASetVertexBuffers(0, 1, &it->handle, &it->element_stride, &it->element_offset);
     else
-        d3d.context->IASetIndexBuffer(it.handle, DXGI_FORMAT_R32_UINT, 0);
+        d3d.context->IASetIndexBuffer(it->handle, DXGI_FORMAT_R32_UINT, 0);
 }
 
 /// ============ GPU IMAGE ============ ///
-struct Gpu_Image {
+struct Gpu_Image
+{
     ID3D11Texture2D *handle;
     uint size[2];
 };
 
-bool create_gpu_image(Gpu_Image &it, void *data, uint width, uint height) {
+bool create_gpu_image(Gpu_Image *it, void *data, uint width, uint height)
+{
     D3D11_TEXTURE2D_DESC texture_desc;
     D3D11_SUBRESOURCE_DATA texture_data;
     auto data_ptr = &texture_data;
@@ -362,50 +376,60 @@ bool create_gpu_image(Gpu_Image &it, void *data, uint width, uint height) {
     if (!data)
         data_ptr = NULL;
 
-    if (FAILED(d3d.device->CreateTexture2D(&texture_desc, data_ptr, &it.handle))) {
+    if (FAILED(d3d.device->CreateTexture2D(&texture_desc, data_ptr, &it->handle))) {
         LOGF("Failed: %p, %dx%d\n", data, width, height);
         return false;
     }
 
-    it.size[0] = width;
-    it.size[1] = height;
+    it->size[0] = width;
+    it->size[1] = height;
     
     return true;
 }
 
-void release_gpu_image(Gpu_Image &it) {
-    it.handle->Release();
-    ZeroThat(&it);
+void release_gpu_image(Gpu_Image *it)
+{
+    it->handle->Release();
+    ZeroThat(it);
 }
 
 /// ============ GPU SHADER ============ ///
-struct Shader_Buffer {
+struct Shader_Buffer
+{
     void *data;
     uint size;
 }; 
 
-struct Gpu_Shader {
-    union {
-        struct {
+struct Gpu_Shader
+{
+    union
+    {
+        struct
+        {
             ID3D11VertexShader *handle;
             ID3D11InputLayout *layout;
         } vs;
-        struct {
+        struct
+        {
             ID3D11PixelShader *handle;
         } ps;
     };
 
-    struct {
+    struct
+    {
         unsigned int count;
         ID3D11Buffer **handles;
         Shader_Buffer *data;
     } cbuffers;
+    
     int type;
 };
 
-bool create_gpu_shader(Gpu_Shader &it, void *bytecode, size_t bytecode_size) {
+bool create_gpu_shader(Gpu_Shader *it, void *bytecode, size_t bytecode_size)
+{
     ID3D11ShaderReflection *reflector;
-    if (FAILED(D3DReflect(bytecode, bytecode_size, IID_PPV_ARGS(&reflector)))) {
+    if (FAILED(D3DReflect(bytecode, bytecode_size, IID_PPV_ARGS(&reflector))))
+    {
         LOGF("Failed to reflect.\n");
         return false;
     }
@@ -413,13 +437,16 @@ bool create_gpu_shader(Gpu_Shader &it, void *bytecode, size_t bytecode_size) {
     D3D11_SHADER_DESC shader_desc;
     reflector->GetDesc(&shader_desc);
 
-    if (D3D11_SHVER_GET_TYPE(shader_desc.Version) == D3D11_SHVER_VERTEX_SHADER) {
-        d3d.device->CreateVertexShader(bytecode, bytecode_size, NULL, &it.vs.handle);
+    ///
+    if (D3D11_SHVER_GET_TYPE(shader_desc.Version) == D3D11_SHVER_VERTEX_SHADER)
+    {
+        d3d.device->CreateVertexShader(bytecode, bytecode_size, NULL, &it->vs.handle);
 
         D3D11_INPUT_ELEMENT_DESC input_elements[8];
         D3D11_SIGNATURE_PARAMETER_DESC signature_parameter;
 
-        for (auto i = 0; i != shader_desc.InputParameters; ++i) {
+        for (auto i = 0; i != shader_desc.InputParameters; ++i)
+        {
             ZeroThat(&input_elements[i]);
             reflector->GetInputParameterDesc(i, &signature_parameter);
 
@@ -430,25 +457,31 @@ bool create_gpu_shader(Gpu_Shader &it, void *bytecode, size_t bytecode_size) {
             input_elements[i].InstanceDataStepRate = 0;
             input_elements[i].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 
-            switch (signature_parameter.ComponentType) {
+            switch (signature_parameter.ComponentType)
+            {
                 case D3D_REGISTER_COMPONENT_SINT32:
-                    switch (signature_parameter.Mask) {
+                    switch (signature_parameter.Mask)
+                    {
                         case 1: input_elements[i].Format = DXGI_FORMAT_R32_SINT; break;
                         case 3: input_elements[i].Format = DXGI_FORMAT_R32G32_SINT; break;
                         case 7: input_elements[i].Format = DXGI_FORMAT_R32G32B32_SINT; break;
                         case 15: input_elements[i].Format = DXGI_FORMAT_R32G32B32A32_SINT; break;
                     }
                     break;
+
                 case D3D_REGISTER_COMPONENT_UINT32:
-                    switch (signature_parameter.Mask) {
+                    switch (signature_parameter.Mask)
+                    {
                         case 1: input_elements[i].Format = DXGI_FORMAT_R32_UINT; break;
                         case 3: input_elements[i].Format = DXGI_FORMAT_R32G32_UINT; break;
                         case 7: input_elements[i].Format = DXGI_FORMAT_R32G32B32_UINT; break;
                         case 15: input_elements[i].Format = DXGI_FORMAT_R32G32B32A32_UINT; break;
                     }
                     break;
+
                 case D3D_REGISTER_COMPONENT_FLOAT32:
-                    switch (signature_parameter.Mask) {
+                    switch (signature_parameter.Mask)
+                    {
                         case 1: input_elements[i].Format = DXGI_FORMAT_R32_FLOAT; break;
                         case 3: input_elements[i].Format = DXGI_FORMAT_R32G32_FLOAT; break;
                         case 7: input_elements[i].Format = DXGI_FORMAT_R32G32B32_FLOAT; break;
@@ -458,50 +491,59 @@ bool create_gpu_shader(Gpu_Shader &it, void *bytecode, size_t bytecode_size) {
             }
         }
 
-        d3d.device->CreateInputLayout(input_elements, shader_desc.InputParameters, bytecode, bytecode_size, &it.vs.layout);
-        it.type = D3D11_SHVER_VERTEX_SHADER;
-    } else {
-        d3d.device->CreatePixelShader(bytecode, bytecode_size, NULL, &it.ps.handle);
-        it.type = D3D11_SHVER_PIXEL_SHADER;
+        d3d.device->CreateInputLayout(input_elements, shader_desc.InputParameters, bytecode, bytecode_size, &it->vs.layout);
+        it->type = D3D11_SHVER_VERTEX_SHADER;
+        
+    } else
+    {
+        d3d.device->CreatePixelShader(bytecode, bytecode_size, NULL, &it->ps.handle);
+        it->type = D3D11_SHVER_PIXEL_SHADER;
     }
 
-    it.cbuffers.count = 0;
-    if (shader_desc.ConstantBuffers) {
-        it.cbuffers.count = shader_desc.ConstantBuffers;
-        it.cbuffers.data = (Shader_Buffer *)malloc(sizeof(Shader_Buffer) * it.cbuffers.count);
-        it.cbuffers.handles = (ID3D11Buffer **)malloc(sizeof(intptr_t) * it.cbuffers.count);
+    /// 
+    it->cbuffers.count = 0;
+    
+    if (shader_desc.ConstantBuffers)
+    {
+        it->cbuffers.count = shader_desc.ConstantBuffers;
+        it->cbuffers.data = (Shader_Buffer *)malloc(sizeof(Shader_Buffer) * it->cbuffers.count);
+        it->cbuffers.handles = (ID3D11Buffer **)malloc(sizeof(intptr_t) * it->cbuffers.count);
 
         ID3D11ShaderReflectionConstantBuffer *cbuffer;
         D3D11_SHADER_BUFFER_DESC cbuffer_desc;
 
-        for (auto i = 0; i != shader_desc.ConstantBuffers; ++i) {
+        for (auto i = 0; i != shader_desc.ConstantBuffers; ++i)
+        {
             cbuffer = reflector->GetConstantBufferByIndex(i);
             cbuffer->GetDesc(&cbuffer_desc);
 
-            it.cbuffers.data[i].size = cbuffer_desc.Size;
-            it.cbuffers.data[i].data = malloc(cbuffer_desc.Size);
-            memset(it.cbuffers.data[i].data, 0, cbuffer_desc.Size);
+            it->cbuffers.data[i].size = cbuffer_desc.Size;
+            it->cbuffers.data[i].data = malloc(cbuffer_desc.Size);
+            memset(it->cbuffers.data[i].data, 0, cbuffer_desc.Size);
 
             D3D11_BUFFER_DESC buffer_desc = {};
             buffer_desc.ByteWidth = cbuffer_desc.Size;
             buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
             buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            d3d.device->CreateBuffer(&buffer_desc, NULL, &it.cbuffers.handles[i]);
+            d3d.device->CreateBuffer(&buffer_desc, NULL, &it->cbuffers.handles[i]);
         }
     }
 
+    ///
     reflector->Release();
     return true;
 }
 
-bool compile_gpu_shader(Gpu_Shader &it, char *path, int type) {
+bool compile_gpu_shader(Gpu_Shader *it, char *path, int type)
+{
     char *buffer = NULL;
     LARGE_INTEGER li;
     HANDLE file;
 
     file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 128, NULL);
-    if (file == (HANDLE)-1) {
+    if (file == (HANDLE)-1)
+    {
         LOGF("Failed: %s\n", path);
         return false;
     }
@@ -509,10 +551,11 @@ bool compile_gpu_shader(Gpu_Shader &it, char *path, int type) {
     GetFileSizeEx(file, &li);
     buffer = (char *)malloc(li.QuadPart + 1);
     buffer[li.QuadPart] = 0;
-
+    
     ReadFile(file, buffer, li.LowPart, NULL, NULL);
     CloseHandle(file);
 
+    ///
     ID3DBlob *source_blob, *error_blob;
     const char *model = "vs_5_0";
     if (type == D3D11_SHVER_PIXEL_SHADER)
@@ -545,49 +588,59 @@ bool compile_gpu_shader(Gpu_Shader &it, char *path, int type) {
     return result;
 }
 
-void release_gpu_shader(Gpu_Shader &it) {
-    if (it.type == D3D11_SHVER_VERTEX_SHADER) {
-        it.vs.handle->Release();
-        it.vs.layout->Release();
+void release_gpu_shader(Gpu_Shader *it)
+{
+    if (it->type == D3D11_SHVER_VERTEX_SHADER)
+    {
+        it->vs.handle->Release();
+        it->vs.layout->Release();
     }
-    else {
-        it.ps.handle->Release();
+    else
+    {
+        it->ps.handle->Release();
     }
 
-    if (it.cbuffers.count) {
-        for (auto i = 0; i != it.cbuffers.count; ++i) {
-            free(it.cbuffers.data[i].data);
-            it.cbuffers.handles[i]->Release();
+    if (it->cbuffers.count)
+    {
+        for (auto i = 0; i != it->cbuffers.count; ++i)
+        {
+            free(it->cbuffers.data[i].data);
+            it->cbuffers.handles[i]->Release();
         }
-        free(it.cbuffers.data);
-        free(it.cbuffers.handles);
+        free(it->cbuffers.data);
+        free(it->cbuffers.handles);
     }
 
-    ZeroThat(&it);
+    ZeroThat(it);
 }
 
-void bind_gpu_shader(Gpu_Shader &it) {
-    if (it.cbuffers.count) {
+void bind_gpu_shader(Gpu_Shader *it)
+{
+    if (it->cbuffers.count)
+    {
         D3D11_MAPPED_SUBRESOURCE subresource;
-        for (auto i = 0; i != it.cbuffers.count; ++i) {
-            d3d.context->Map(it.cbuffers.handles[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
-            memcpy(subresource.pData, it.cbuffers.data[i].data, it.cbuffers.data[i].size);
-            d3d.context->Unmap(it.cbuffers.handles[i], 0);
+        for (auto i = 0; i != it->cbuffers.count; ++i)
+        {
+            d3d.context->Map(it->cbuffers.handles[i], 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+            memcpy(subresource.pData, it->cbuffers.data[i].data, it->cbuffers.data[i].size);
+            d3d.context->Unmap(it->cbuffers.handles[i], 0);
         }
     }
     
-    if (it.type == D3D11_SHVER_VERTEX_SHADER) {
-        d3d.context->VSSetShader(it.vs.handle, NULL, 0);
-        d3d.context->IASetInputLayout(it.vs.layout);
+    if (it->type == D3D11_SHVER_VERTEX_SHADER)
+    {
+        d3d.context->VSSetShader(it->vs.handle, NULL, 0);
+        d3d.context->IASetInputLayout(it->vs.layout);
         
-        if (it.cbuffers.count)
-            d3d.context->VSSetConstantBuffers(0, it.cbuffers.count, it.cbuffers.handles);
+        if (it->cbuffers.count)
+            d3d.context->VSSetConstantBuffers(0, it->cbuffers.count, it->cbuffers.handles);
     }
-    else {
-        d3d.context->PSSetShader(it.ps.handle, NULL, 0);
-
-        if (it.cbuffers.count)
-            d3d.context->PSSetConstantBuffers(0, it.cbuffers.count, it.cbuffers.handles);
+    else
+    {
+        d3d.context->PSSetShader(it->ps.handle, NULL, 0);
+        
+        if (it->cbuffers.count)
+            d3d.context->PSSetConstantBuffers(0, it->cbuffers.count, it->cbuffers.handles);
     }
 }
 
