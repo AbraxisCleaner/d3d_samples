@@ -42,8 +42,8 @@ bool import_obj(char *path) {
         if (*c == 'f') {
             num_faces++;
         }
-        if (*c == 'n') {
-            num_faces++;
+        if (*c == 'v' && *(c + 1) == 'n') {
+            num_normals++;
         }
         
         ++c;

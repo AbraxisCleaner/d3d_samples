@@ -7,6 +7,7 @@ cbuffer cb0 : register(b0) {
 };
 
 void main(float4 position      : SV_Position,
+          float3 vertex_color  : COLOR0,
           float2 texcoord      : TEXCOORD0,
           float3 normal        : TEXCOORD1,
           float3 pixel_ws      : TEXCOORD2,
@@ -16,7 +17,6 @@ void main(float4 position      : SV_Position,
     {
         float3 light_color = float3(1, 1, 1);
         float  ambient_light = 0.1;    
-        float3 object_color = float3(1, 1, 0);
         float specular_strength = 0.5; // spec
     
         float3 ambient = ambient_light * light_color;
@@ -34,12 +34,12 @@ void main(float4 position      : SV_Position,
         float spec = pow(max(dot(view_dir, reflection_dir), 0.0), 32);
         float3 specular = specular_strength * spec * light_color;
     
-        float3 result = (ambient + diffuse + specular) * object_color; 
+        float3 result = (ambient + diffuse + specular) * vertex_color; 
     
         out_pixel = float4(result, 1);
     }
     else
     {
-        out_pixel = float4(1, 0.5, 0.5, 1);
+        out_pixel = float4(vertex_color, 1);
     }
 }
