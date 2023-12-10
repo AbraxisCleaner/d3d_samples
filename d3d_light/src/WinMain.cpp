@@ -16,7 +16,7 @@ struct Camera {
     Camera() {
         fov = 80.0f;
         position = HMM_V3(0, 0, 0);
-        orbit = HMM_V3(2, HMM_AngleDeg(-25.0f), 3);
+        orbit = HMM_V3(HMM_AngleDeg(-45.0f), 0, 3);
         orbit_target = HMM_V3(0, 0, 0);
         orbit_speed = 5;
         view_plane_distance = HMM_V2(0.1f, 100.0f);
@@ -152,7 +152,6 @@ int main() {
         for (auto i = 0; i != num_meshes; ++i)
         {    
             auto ai_mesh = scene->mMeshes[i];
-            printf("Parsing '%s'...\n", ai_mesh->mName.data);
 
             int num_uv_channels = ai_mesh->GetNumUVChannels();
             int num_vertices = ai_mesh->mNumVertices;
@@ -167,15 +166,14 @@ int main() {
                 memcpy(vertices[j].position, &ai_mesh->mVertices[j], 3 * sizeof(float));
                 memcpy(vertices[j].normal, &ai_mesh->mNormals[j], 3 * sizeof(float));
 
-                /*
-                if (ai_mesh->mColors)
-                    memcpy(vertices[j].color, &ai_mesh->mColors[j], 3 * sizeof(float));
-                else {
-                    float color[3] = { 0.5f, 0.5f, 0.5f };
-                    memcpy(vertices[j].color, color, 3 * sizeof(float));
-                }
-                */
-                float color[3] = { 0.5f, 0.5f, 0.5f };
+                //if (ai_mesh->mColors)
+                //    memcpy(vertices[j].color, &ai_mesh->mColors[j], 3 * sizeof(float));
+                //else {
+                //    float color[3] = { 0.5f, 0.5f, 0.5f };
+                //    memcpy(vertices[j].color, color, 3 * sizeof(float));
+                // }
+                
+                float color[3] = { 0.65f, 0.65f, 0.65f };
                 memcpy(vertices[j].color, color, 3 * sizeof(float));
             }
 
@@ -193,12 +191,7 @@ int main() {
 
                 auto face_indices = ai_mesh->mFaces[j].mIndices;
 
-                // @NOTE: Straight memcpying the indices from ai_mesh->mFaces[j].mIndices to
-                //          &indices[indices_index] and then incrementing indices_index was
-                //          causing strange corruption.
-                indices[indices_index] = face_indices[0];
-                indices[indices_index + 1] = face_indices[1];
-                indices[indices_index + 2] = face_indices[2];
+                memcpy(&indices[indices_index], &face_indices[0], 3 * sizeof(uint));
                 
                 indices_index += 3;
             }
@@ -217,12 +210,13 @@ int main() {
 
     Transform cube_tf = Transform::zero();
     Transform light_tf = Transform::zero();
-    light_tf.position = HMM_V3(-2, -2, 2);
+    light_tf.position = HMM_V3(2, 2, 2);
     
     Camera camera;
 
     int renderer_flags = 0; // 1 << 0: wireframe;
                             // 1 << 1: use_lighting;
+    renderer_flags |= 2;
  
     /// MAIN LOOP
     float timestep = 0;
@@ -267,7 +261,8 @@ int main() {
             else
                 d3d.context->RSSetState(d3d.cw_rasterizer);
             
-            float bg_color[4] = { 0, 0, 0, 1 };
+            //float bg_color[4] = { 0, 0, 0, 1 };
+            float bg_color[4] = { 1, 182.0f/255.0f, 193.0f/255.0f, 1 }; // pink
             d3d.context->ClearRenderTargetView(d3d.backbuffer_view, bg_color);
             d3d.context->ClearDepthStencilView(d3d.depthbuffer_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1, 0);
             d3d.context->OMSetRenderTargets(1, &d3d.backbuffer_view, d3d.depthbuffer_view);
