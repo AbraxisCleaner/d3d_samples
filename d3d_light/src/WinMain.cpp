@@ -6,13 +6,6 @@
 #include "obj_import.h"
 #include "fbx_import.h"
 
-struct Vertex {
-    float position[3];
-    float color[3];
-    float texcoord[2];
-    float normal[3];
-};
-
 struct Camera {
     float    fov; // vertical fov
     HMM_Vec3 position;
@@ -32,7 +25,7 @@ struct Camera {
     
     void tick(float timestep) {
         if (win32.input.mouse_buttons & (1 << 0)) {
-            orbit[0] += -HMM_AngleDeg(win32.input.mouse_delta[0]);
+            orbit[0] += HMM_AngleDeg(win32.input.mouse_delta[0]);
             orbit[1] += HMM_AngleDeg(win32.input.mouse_delta[1]);
         }
         if (win32.input.mouse_buttons & (1 << 3)) {
@@ -60,7 +53,7 @@ struct Camera {
     }
 
     HMM_Mat4 get_matrix() {
-        return HMM_LookAt_LH(position, orbit_target, HMM_V3(0, 1, 0)); 
+        return HMM_LookAt_RH(position, orbit_target, HMM_V3(0, 1, 0)); 
     }
 };
 
@@ -79,10 +72,11 @@ struct PS_CB0 {
 int main() {
     initialize_win32();
     initialize_d3d();
+    initialize_fbx_sdk();
     
-    //ASSERT(import_obj("data\\teapot.obj"));
-    ASSERT(import_fbx("data\\Full_HP.fbx"));
-
+    Fbx_Data fbx_data;
+    ASSERT(import_fbx("data\\HP_export.fbx", &fbx_data));
+    
     Gpu_Buffer vbo, ibo;
     Vertex cube_vertices[] = {
         // +z face slice
@@ -139,6 +133,8 @@ int main() {
 
     create_gpu_buffer(vbo, cube_vertices, 24, sizeof(Vertex), D3D11_BIND_VERTEX_BUFFER);
     create_gpu_buffer(ibo, cube_indices, 36, sizeof(uint), D3D11_BIND_INDEX_BUFFER);
+
+    free(fbx_data.objects);
     
     Gpu_Shader vs, ps;
     ASSERT(compile_gpu_shader(vs, "src\\shaders\\static.hlsl", D3D11_SHVER_VERTEX_SHADER));
@@ -207,7 +203,7 @@ int main() {
 
             vs_cb->world_matrix = cube_tf.as_matrix();
             vs_cb->view_matrix = camera.get_matrix();
-            vs_cb->proj_matrix = HMM_Perspective_LH_ZO(HMM_AngleDeg(camera.fov),
+            vs_cb->proj_matrix = HMM_Perspective_RH_ZO(HMM_AngleDeg(camera.fov),
                                                                     (d3d_viewport.Width / d3d_viewport.Height),
                                                                     camera.view_plane_distance[0],
                                                                     camera.view_plane_distance[1]);
@@ -249,7 +245,8 @@ int main() {
     release_gpu_shader(vs);
     release_gpu_buffer(ibo);
     release_gpu_buffer(vbo);
-    
+
+    release_fbx_sdk();
     release_d3d();
     release_win32();
     LOG("No error.\n");
