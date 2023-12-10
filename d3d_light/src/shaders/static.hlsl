@@ -6,7 +6,7 @@ cbuffer cb0 : register(b0) {
 };
 
 void main(float3 position : POSITION,
-          float3 color : COLOR0,
+          float3 color    : COLOR0,
           float2 texcoord : TEXCOORD0,
           float3 normal   : TEXCOORD1,
           out float4 out_position  : SV_Position,
