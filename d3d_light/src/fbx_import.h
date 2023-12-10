@@ -1,34 +1,8 @@
 #ifndef _FBX_IMPORT_H_
 #define _FBX_IMPORT_H_
 #include "stdafx.h"
+#include "mesh_common.h"
 #include <fbxsdk.h>
-
-#include "transform.h"
-
-struct Vertex {
-    float position[3];
-    float color[3];
-    float texcoord[2];
-    float normal[3];
-};
-
-union Face {
-    struct {
-        unsigned int v0, v1, v2;
-    };
-    uint elements[3];
-};
-
-struct Mesh_Object {
-    char name[1024];
-    Transform tf;
-    uint parent_index;
-
-    Vertex *vertices;
-    Face *faces;
-    uint num_vertices;
-    uint num_faces;
-};
 
 struct Fbx_Data {
     Mesh_Object *objects;
@@ -97,17 +71,21 @@ void fbx_iter_mesh_data(FbxNode *node, Fbx_Data *data, bool is_root = false, int
 
             data->objects[current_mesh_index].parent_index = parent_index;
 
-            // Retrieve mesh data.
             FbxMesh *mesh = (FbxMesh *)mesh_attribute;
-            
+
+            // @TODO
+            // @TODO: CONTINUE HERE SOMEWHERE
+            // @TODO
+            // triangulate mesh.
             FbxGeometryConverter fbx_geom_converter(fbx.manager);
             mesh = (FbxMesh *)fbx_geom_converter.Triangulate(mesh_attribute, true);
-            
+
+            // ensure usable normals.
             mesh->GenerateNormals(true, true);
-            
+
+            // Retrieve control points and normals.            
             int num_control_points = mesh->GetControlPointsCount();
             FbxVector4 *control_points = mesh->GetControlPoints();
-            int element_normal_count = mesh->GetElementNormalCount();
             int num_polygons = mesh->GetPolygonCount();
 
             data->objects[current_mesh_index].num_vertices = num_control_points;
@@ -123,9 +101,9 @@ void fbx_iter_mesh_data(FbxNode *node, Fbx_Data *data, bool is_root = false, int
                 if (normals->GetMappingMode() == FbxGeometryElement::eByControlPoint) {
                     auto direct_normals_array = normals->GetDirectArray().GetAt(i);
 
-                    printf("\t(%f, %f, %f), (%f, %f, %f)\n",
-                           control_points[i][0], control_points[i][1], control_points[i][2],
-                           direct_normals_array[0], direct_normals_array[1], direct_normals_array[2]);
+                    //printf("\t(%f, %f, %f), (%f, %f, %f)\n",
+                    //       control_points[i][0], control_points[i][1], control_points[i][2],
+                    //       direct_normals_array[0], direct_normals_array[1], direct_normals_array[2]);
                 }
             }
         }

@@ -3,8 +3,9 @@
 #define HANDMADE_MATH_USE_RADIANS
 #include "HandmadeMath.h"
 
-#include "obj_import.h"
-#include "fbx_import.h"
+//#include "obj_import.h"
+//#include "fbx_import.h"
+#include "dae_import.h"
 
 struct Camera {
     float    fov; // vertical fov
@@ -72,10 +73,11 @@ struct PS_CB0 {
 int main() {
     initialize_win32();
     initialize_d3d();
-    initialize_fbx_sdk();
+    //initialize_fbx_sdk();
     
-    Fbx_Data fbx_data;
-    ASSERT(import_fbx("data\\HP_export.fbx", &fbx_data));
+    //Fbx_Data fbx_data;
+    //ASSERT(import_fbx("data\\HP_export.fbx", &fbx_data));
+    ASSERT(import_dae("data\\remington\\model.dae"));
     
     Gpu_Buffer vbo, ibo;
     Vertex cube_vertices[] = {
@@ -134,7 +136,7 @@ int main() {
     create_gpu_buffer(vbo, cube_vertices, 24, sizeof(Vertex), D3D11_BIND_VERTEX_BUFFER);
     create_gpu_buffer(ibo, cube_indices, 36, sizeof(uint), D3D11_BIND_INDEX_BUFFER);
 
-    free(fbx_data.objects);
+    //free(fbx_data.objects);
     
     Gpu_Shader vs, ps;
     ASSERT(compile_gpu_shader(vs, "src\\shaders\\static.hlsl", D3D11_SHVER_VERTEX_SHADER));
@@ -246,7 +248,7 @@ int main() {
     release_gpu_buffer(ibo);
     release_gpu_buffer(vbo);
 
-    release_fbx_sdk();
+    //release_fbx_sdk();
     release_d3d();
     release_win32();
     LOG("No error.\n");
