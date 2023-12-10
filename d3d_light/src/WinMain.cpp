@@ -3,9 +3,7 @@
 #define HANDMADE_MATH_USE_RADIANS
 #include "HandmadeMath.h"
 
-//#include "obj_import.h"
-//#include "fbx_import.h"
-#include "dae_import.h"
+#include "assimp_import.h"
 
 struct Camera {
     float    fov; // vertical fov
@@ -73,74 +71,149 @@ struct PS_CB0 {
 int main() {
     initialize_win32();
     initialize_d3d();
-    //initialize_fbx_sdk();
     
-    //Fbx_Data fbx_data;
-    //ASSERT(import_fbx("data\\HP_export.fbx", &fbx_data));
-    ASSERT(import_dae("data\\remington\\model.dae"));
+    Gpu_Buffer cube_vbo, cube_ibo;
+    {
+        Vertex cube_vertices[] = {
+            // +z face slice
+            { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 0, 1 } },
+            { { -0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 0, 1 } },
+            { {  0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 0, 1 } },
+            { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 0, 1 } },
+
+            // -z face slice
+            { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 0, -1 } },
+            { { -0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 0, -1 } },
+            { {  0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 0, -1 } },
+            { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 0, -1 } },
+
+            // -x face slice
+            { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { -1, 0, 0 } },
+            { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { -1, 0, 0 } },
+            { { -0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { -1, 0, 0 } },
+            { { -0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { -1, 0, 0 } },
+
+            // +x face slice
+            { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 1, 0, 0 } },
+            { {  0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 0, 0 }, { 1, 0, 0 } },
+            { {  0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 1, 0, 0 } },
+            { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 1 }, { 1, 0, 0 } },
+
+            // -y face slice
+            { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 1, 0 } },
+            { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 1, 0 } },
+            { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 1, 0 } },
+            { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 1, 0 } },
+
+            //  y face slice
+            { { -0.5f, 0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, -1, 0 } },
+            { { -0.5f, 0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, -1, 0 } },
+            { {  0.5f, 0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, -1, 0 } },
+            { {  0.5f, 0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, -1, 0 } },
+        };
+
+        unsigned int cube_indices[] = {
+            // +z
+            0, 1, 2, 2, 3, 0,
+            // -z
+            4, 5, 6, 6, 7, 4,
+            // -x
+            8, 9, 10, 10, 11, 8,
+            // +x
+            12, 13, 14, 14, 15, 12,
+            // -y
+            16, 17, 18, 18, 19, 16,
+            // +x
+            20, 21, 22, 22, 23, 20
+        };
+
+        create_gpu_buffer(&cube_vbo, cube_vertices, 24, sizeof(Vertex), D3D11_BIND_VERTEX_BUFFER);
+        create_gpu_buffer(&cube_ibo, cube_indices, 36, sizeof(uint), D3D11_BIND_INDEX_BUFFER);
+    }
     
-    Gpu_Buffer vbo, ibo;
-    Vertex cube_vertices[] = {
-        // +z face slice
-        { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 0, 1 } },
-        { { -0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 0, 1 } },
-        { {  0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 0, 1 } },
-        { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 0, 1 } },
+    uint num_meshes;
+    Gpu_Buffer *mesh_buffers;
+    
+    /// MESH LOADING
+    // @TODO: This whole thing needs to be rewritten. Memory allocation is causing some kind of heap corruption, I think.
+    {
+        Assimp::Importer importer;
+        const aiScene *scene = importer.ReadFile("data\\remington\\model.dae", aiProcess_Triangulate|aiProcess_FlipUVs|aiProcess_GenNormals);
 
-        // -z face slice
-        { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 0, -1 } },
-        { { -0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 0, -1 } },
-        { {  0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 0, -1 } },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 0, -1 } },
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        {
+            LOGF("Assimp error: %s\n", importer.GetErrorString());
+            ASSERT(NULL);
+        }
 
-        // -x face slice
-        { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { -1, 0, 0 } },
-        { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { -1, 0, 0 } },
-        { { -0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { -1, 0, 0 } },
-        { { -0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { -1, 0, 0 } },
+        num_meshes = scene->mNumMeshes;
+        mesh_buffers = (Gpu_Buffer *)malloc((num_meshes * 2) * sizeof(Gpu_Buffer));
+        
+        for (auto i = 0; i != num_meshes; ++i)
+        {    
+            auto ai_mesh = scene->mMeshes[i];
+            printf("Parsing '%s'...\n", ai_mesh->mName.data);
 
-        // +x face slice
-        { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 1, 0, 0 } },
-        { {  0.5f,  0.5f,  0.5f }, { 1, 1, 0 }, { 0, 0 }, { 1, 0, 0 } },
-        { {  0.5f,  0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 1, 0, 0 } },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 1 }, { 1, 0, 0 } },
+            int num_uv_channels = ai_mesh->GetNumUVChannels();
+            int num_vertices = ai_mesh->mNumVertices;
+            int num_faces = ai_mesh->mNumFaces;
 
-        // -y face slice
-        { { -0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, 1, 0 } },
-        { { -0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, 1, 0 } },
-        { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, 1, 0 } },
-        { {  0.5f, -0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, 1, 0 } },
+            // Construct vbo.
+            Gpu_Buffer *current_vbo = &mesh_buffers[i];
 
-        //  y face slice
-        { { -0.5f, 0.5f,  0.5f }, { 1, 1, 0 }, { 0, 1 }, { 0, -1, 0 } },
-        { { -0.5f, 0.5f, -0.5f }, { 1, 1, 0 }, { 0, 0 }, { 0, -1, 0 } },
-        { {  0.5f, 0.5f, -0.5f }, { 1, 1, 0 }, { 1, 0 }, { 0, -1, 0 } },
-        { {  0.5f, 0.5f,  0.5f }, { 1, 1, 0 }, { 1, 1 }, { 0, -1, 0 } },
-    };
+            Vertex *vertices = (Vertex *)malloc(num_vertices * sizeof(Vertex));
+            for (auto j = 0; j != num_vertices; ++j)
+            {    
+                memcpy(vertices[j].position, &ai_mesh->mVertices[j], 3 * sizeof(float));
+                memcpy(vertices[j].normal, &ai_mesh->mNormals[j], 3 * sizeof(float));
 
-    unsigned int cube_indices[] = {
-        // +z
-        0, 1, 2, 2, 3, 0,
-        // -z
-        4, 5, 6, 6, 7, 4,
-        // -x
-        8, 9, 10, 10, 11, 8,
-        // +x
-        12, 13, 14, 14, 15, 12,
-        // -y
-        16, 17, 18, 18, 19, 16,
-        // +x
-        20, 21, 22, 22, 23, 20
-    };
+                /*
+                if (ai_mesh->mColors)
+                    memcpy(vertices[j].color, &ai_mesh->mColors[j], 3 * sizeof(float));
+                else {
+                    float color[3] = { 0.5f, 0.5f, 0.5f };
+                    memcpy(vertices[j].color, color, 3 * sizeof(float));
+                }
+                */
+                float color[3] = { 0.5f, 0.5f, 0.5f };
+                memcpy(vertices[j].color, color, 3 * sizeof(float));
+            }
 
-    create_gpu_buffer(vbo, cube_vertices, 24, sizeof(Vertex), D3D11_BIND_VERTEX_BUFFER);
-    create_gpu_buffer(ibo, cube_indices, 36, sizeof(uint), D3D11_BIND_INDEX_BUFFER);
+            create_gpu_buffer(current_vbo, vertices, num_vertices, sizeof(Vertex), D3D11_BIND_VERTEX_BUFFER);
 
-    //free(fbx_data.objects);
+            // Construct ibo.
+            Gpu_Buffer *current_ibo = &mesh_buffers[num_meshes + i];
+            
+            uint *indices = (uint *)malloc((num_faces * 3) * sizeof(uint));
+            auto indices_index = 0;
+            
+            for (auto j = 0; j != num_faces; ++j)
+            {
+                ASSERT(ai_mesh->mFaces[j].mNumIndices == 3);
+
+                auto face_indices = ai_mesh->mFaces[j].mIndices;
+
+                // @NOTE: Straight memcpying the indices from ai_mesh->mFaces[j].mIndices to
+                //          &indices[indices_index] and then incrementing indices_index was
+                //          causing strange corruption.
+                indices[indices_index] = face_indices[0];
+                indices[indices_index + 1] = face_indices[1];
+                indices[indices_index + 2] = face_indices[2];
+                
+                indices_index += 3;
+            }
+
+            create_gpu_buffer(current_ibo, indices, (num_faces * 3), sizeof(uint), D3D11_BIND_INDEX_BUFFER);
+            
+            free(vertices);
+            free(indices);
+        }
+    }
+    ///
     
     Gpu_Shader vs, ps;
-    ASSERT(compile_gpu_shader(vs, "src\\shaders\\static.hlsl", D3D11_SHVER_VERTEX_SHADER));
-    ASSERT(compile_gpu_shader(ps, "src\\shaders\\lit.hlsl", D3D11_SHVER_PIXEL_SHADER));
+    ASSERT(compile_gpu_shader(&vs, "src\\shaders\\static.hlsl", D3D11_SHVER_VERTEX_SHADER));
+    ASSERT(compile_gpu_shader(&ps, "src\\shaders\\lit.hlsl", D3D11_SHVER_PIXEL_SHADER));
 
     Transform cube_tf = Transform::zero();
     Transform light_tf = Transform::zero();
@@ -217,19 +290,27 @@ int main() {
             if (renderer_flags & 2)
                 ps_cb->use_lighting = true;
 
-            bind_gpu_shader(vs);
-            bind_gpu_shader(ps);
-            bind_gpu_buffer(vbo);
-            bind_gpu_buffer(ibo);
-            d3d.context->DrawIndexed(ibo.element_count, 0, 0);
+            bind_gpu_shader(&vs);
+            bind_gpu_shader(&ps);
+
+            for (auto i = 0; i != num_meshes; ++i) {
+                bind_gpu_buffer(&mesh_buffers[i]);
+                bind_gpu_buffer(&mesh_buffers[num_meshes + i]);
+                d3d.context->DrawIndexed(mesh_buffers[num_meshes + i].element_count, 0, 0);
+            }
+            //bind_gpu_buffer(cube_vbo);
+            //bind_gpu_buffer(cube_ibo);
+            //d3d.context->DrawIndexed(cube_ibo.element_count, 0, 0);
 
             // Light gizmo.
             d3d.context->RSSetState(d3d.wf_rasterizer);
             vs_cb->world_matrix = HMM_MulM4(HMM_Translate(light_tf.position), HMM_Scale(HMM_V3(0.5f, 0.5f, 0.5f)));
             ps_cb->use_lighting = false;
-            bind_gpu_shader(vs);
-            bind_gpu_shader(ps);
-            d3d.context->DrawIndexed(ibo.element_count, 0, 0);
+            bind_gpu_shader(&vs);
+            bind_gpu_shader(&ps);
+            bind_gpu_buffer(&cube_vbo);
+            bind_gpu_buffer(&cube_ibo);
+            d3d.context->DrawIndexed(cube_ibo.element_count, 0, 0);
             
             // -- Finish
             d3d.swapchain->Present(0, 0);
@@ -243,12 +324,13 @@ int main() {
         }
     }
 
-    release_gpu_shader(ps);
-    release_gpu_shader(vs);
-    release_gpu_buffer(ibo);
-    release_gpu_buffer(vbo);
+    release_gpu_buffers(mesh_buffers, 2 * num_meshes);
+    
+    release_gpu_shader(&ps);
+    release_gpu_shader(&vs);
+    release_gpu_buffer(&cube_ibo);
+    release_gpu_buffer(&cube_vbo);
 
-    //release_fbx_sdk();
     release_d3d();
     release_win32();
     LOG("No error.\n");
