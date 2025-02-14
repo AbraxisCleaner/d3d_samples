@@ -1,3 +1,6 @@
+I am well aware of how terrible this code is. It's inconsistent, poorly designed, and frustrating to read.
+I will make new versions sometime in the future.
+
 # d3d_cube
 Objective: Write a small program that renders a cube cleanly in C.
 
